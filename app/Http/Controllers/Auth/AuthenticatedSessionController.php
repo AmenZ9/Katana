@@ -8,14 +8,18 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use App\Models\User; // <-- IMPORT THE USER MODEL
 
 class AuthenticatedSessionController extends Controller
 {
     /**
      * Display the login view.
      */
+    // In AuthenticatedSessionController.php
+
     public function create(): View
     {
+        // The dd() line has been removed.
         return view('auth.login');
     }
 
@@ -28,6 +32,10 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        if (Auth::user()) {
+            activity()->causedBy(Auth::user())->log('User Logged In');
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
@@ -36,12 +44,12 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        if (Auth::user()) {
+            activity()->causedBy(Auth::user())->log('User Logged Out');
+        }
         Auth::guard('web')->logout();
-
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
-
         return redirect('/');
     }
 }

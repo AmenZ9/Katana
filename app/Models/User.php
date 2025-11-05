@@ -19,12 +19,19 @@ class User extends Authenticatable implements MustVerifyEmail // I've re-enabled
      *
      * @var list<string>
      */
+    // In app/Models/User.php
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
     protected $fillable = [
         'name',
         'email',
         'password',
+        'role', // <-- THIS IS THE CRITICAL FIX
     ];
-
     /**
      * The attributes that should be hidden for serialization.
      *

@@ -1,25 +1,30 @@
 <?php
 
 use App\Http\Controllers\AccountController;
-use App\Http\Controllers\Auth\AuthenticatedSessionController; // <-- IMPORT THIS
-use App\Http\Controllers\Auth\SocialiteController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Auth\SocialiteController;
 use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
+|
+*/
 
 // --- Public Routes ---
 Route::get('/', function () {
     return view('welcome');
 });
 
-// --- Guest-Only Routes ---
-// We keep the login, register, etc. routes here for guests.
-Route::middleware('guest')->group(function () {
-    // We will require the auth routes file, but we will define logout separately.
-    require __DIR__.'/auth.php';
-});
-
 // --- Authenticated Routes ---
-Route::middleware(['auth', 'verified'])->group(function () {
+// The 'verified' middleware has been REMOVED from the group definition.
+// Now, these routes only require the user to be logged in ('auth').
+Route::middleware('auth')->group(function () {
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->name('dashboard');
@@ -33,9 +38,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/auth/{provider}/redirect', [SocialiteController::class, 'redirect'])->name('auth.social.redirect');
     Route::get('/auth/{provider}/callback', [SocialiteController::class, 'callback'])->name('auth.social.callback');
-
-    // --- EXPLICIT LOGOUT ROUTE FOR AUTHENTICATED USERS ---
-    // This route is ONLY accessible to logged-in users.
-    Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
-                ->name('logout');
 });
+
+// --- Guest-Only Routes ---
+// This file contains routes for login, registration, password reset, etc.
+// It is included at the end to ensure authenticated routes are prioritized.
+require __DIR__.'/auth.php';

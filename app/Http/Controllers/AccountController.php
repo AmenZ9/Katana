@@ -3,24 +3,26 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class AccountController extends Controller
 {
     /**
-     * Display the user's accounts page.
+     * Display the user's linked accounts.
      */
-public function index(){
-    // 1. Get the currently logged-in user
-    $user = auth()->user();
+    public function index(): View
+    {
+        // Get the currently authenticated user
+        $user = Auth::user();
 
-    // 2. Load the linked accounts related to this user
-    // We use 'latest()' to show the most recently linked account first.
-    $linkedAccounts = $user->linkedAccounts()->latest()->get();
+        // Eager load the linked accounts to prevent multiple database queries
+        $user->load('linkedAccounts');
 
-    // 3. Pass the data to the view
-    return view('my-accounts', [
-        'linkedAccounts' => $linkedAccounts,
-    ]);
-}
+        // Pass the user object to the correct view
+        // The view is 'my-accounts', not 'my-accounts.index'
+        return view('my-accounts', [
+            'user' => $user,
+        ]);
+    }
 }

@@ -20,6 +20,8 @@ class SocialiteController extends Controller
      */
     public function redirect(): RedirectResponse
     {
+        dd('Checkpoint 1: Inside redirect() method'); // <-- ADD THIS LINE
+
         // This line will now throw a visible error page if it fails.
         return Socialite::driver('github')->redirect();
     }
@@ -50,29 +52,29 @@ class SocialiteController extends Controller
                 [
                     // Find by...
                     'provider_name' => 'github',
-                    'provider_id'   => $githubUser->getId(),
+                    'provider_id' => $githubUser->getId(),
                 ],
                 [
                     // Create or Update with...
-                    'name'          => $githubUser->getName(),
-                    'nickname'      => $githubUser->getNickname(),
-                    'email'         => $githubUser->getEmail(),
-                    'avatar'        => $githubUser->getAvatar(),
-                    'token'         => $githubUser->token,
+                    'name' => $githubUser->getName(),
+                    'nickname' => $githubUser->getNickname(),
+                    'email' => $githubUser->getEmail(),
+                    'avatar' => $githubUser->getAvatar(),
+                    'token' => $githubUser->token,
                     'refresh_token' => $githubUser->refreshToken,
-                    'expires_at'    => property_exists($githubUser, 'expiresIn') ? now()->addSeconds($githubUser->expiresIn) : null,
+                    'expires_at' => property_exists($githubUser, 'expiresIn') ? now()->addSeconds($githubUser->expiresIn) : null,
                 ]
             );
 
             // Redirect back with a success message.
             return redirect()->route('my-accounts.index')
-                             ->with('status', 'GitHub account linked successfully!');
+                ->with('status', 'GitHub account linked successfully!');
 
         } catch (Throwable $e) {
             // If anything goes wrong during the callback, handle it gracefully.
             report($e);
             return redirect()->route('my-accounts.index')
-                             ->with('error', 'Failed to link GitHub account. Please try again.');
+                ->with('error', 'Failed to link GitHub account. Please try again.');
         }
     }
 }

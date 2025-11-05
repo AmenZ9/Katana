@@ -1,43 +1,42 @@
 <?php
 
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\Auth\SocialiteController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
+
+// Publicly accessible routes
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// Routes that require the user to be logged in
+Route::middleware(['auth', 'verified'])->group(function () {
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
+    // Dashboard
+    Route::get('/dashboard', function () {
+        return view('dashboard');
+    })->name('dashboard');
 
-require __DIR__.'/auth.php';
-use App\Http\Controllers\AccountController;
-
-Route::get('/my-accounts', [AccountController::class, 'index'])->middleware(['auth'])->name('my-accounts');
-
-use App\Http\Controllers\Auth\SocialiteController;
-
-// ... (other routes) ...
-
-require __DIR__.'/auth.php';
-
-Route::middleware('auth')->group(function () {
-    // The existing profile routes are already here
+    // Profile Management
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // The existing "My Accounts" route
-    Route::get('/my-accounts', [AccountController::class, 'index'])->name('my-accounts.index'); // Corrected the name here
+    // Linked Social Accounts
+    Route::get('/my-accounts', [AccountController::class, 'index'])->name('my-accounts.index');
 
-    // --- ADD THE SOCIALITE ROUTES INSIDE THIS GROUP ---
+    // Socialite (GitHub) Authentication Routes
     Route::get('/auth/github/redirect', [SocialiteController::class, 'redirect'])->name('auth.github.redirect');
     Route::get('/auth/github/callback', [SocialiteController::class, 'callback'])->name('auth.github.callback');
+
 });
+
+// This file contains the login, register, password reset, etc. routes
+require __DIR__.'/auth.php';

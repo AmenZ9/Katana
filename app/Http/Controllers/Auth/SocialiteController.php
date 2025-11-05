@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\LinkedAccount;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
@@ -10,52 +11,65 @@ use Throwable;
 
 class SocialiteController extends Controller
 {
-    /**
-     * Redirect the user to the GitHub authentication page.
-     */
-    public function redirect(): RedirectResponse
+    public function redirect(string $provider): RedirectResponse
     {
-        // This should now work correctly.
-        return Socialite::driver('github')->redirect();
+        // We keep the stateless mode as it proved to be the most reliable solution
+        return Socialite::driver($provider)->stateless()->redirect();
     }
 
-    /**
-     * Obtain the user information from GitHub and link the account.
-     */
-    public function callback(): RedirectResponse
+    public function callback(string $provider): RedirectResponse
     {
         $localUser = Auth::user();
-
         if (!$localUser) {
             return redirect()->route('login')->with('error', 'You must be logged in to link an account.');
         }
 
         try {
-            $githubUser = Socialite::driver('github')->user();
+            $providerUser = Socialite::driver($provider)->stateless()->user();
 
-            $localUser->linkedAccounts()->updateOrCreate(
+            // Security Check: Is this social account already linked to a DIFFERENT user?
+            $existingAccount = LinkedAccount::where('provider_name', $provider)
+                                            ->where('provider_id', $providerUser->getId())
+                                            ->first();
+
+            if ($existingAccount && $existingAccount->user_id !== $localUser->id) {
+                return redirect()->route('my-accounts.index')
+                                 ->with('error', 'This ' . ucfirst($provider) . ' account is already linked to another user.');
+            }
+
+            // Create or update the linked account for the CURRENT logged-in user.
+            // The 'created' or 'updated' event will be logged automatically by the model's trait.
+            $linkedAccount = $localUser->linkedAccounts()->updateOrCreate(
                 [
-                    'provider_name' => 'github',
-                    'provider_id'   => $githubUser->getId(),
+                    'provider_name' => $provider,
+                    'provider_id'   => $providerUser->getId(),
                 ],
                 [
-                    'name'          => $githubUser->getName(),
-                    'nickname'      => $githubUser->getNickname(),
-                    'email'         => $githubUser->getEmail(),
-                    'avatar'        => $githubUser->getAvatar(),
-                    'token'         => $githubUser->token,
-                    'refresh_token' => $githubUser->refreshToken,
-                    'expires_at'    => property_exists($githubUser, 'expiresIn') ? now()->addSeconds($githubUser->expiresIn) : null,
+                    'name'          => $providerUser->getName(),
+                    'nickname'      => $providerUser->getNickname(),
+                    'email'         => $providerUser->getEmail(),
+                    'avatar'        => $providerUser->getAvatar(),
+                    'token'         => $providerUser->token,
+                    'refresh_token' => $providerUser->refreshToken,
+                    'expires_at'    => property_exists($providerUser, 'expiresIn') ? now()->addSeconds($providerUser->expiresIn) : null,
                 ]
             );
 
+            // --- THIS IS THE NEW ADDITION ---
+            // Log a custom, more descriptive event.
+            activity()
+                ->causedBy($localUser) // The user who performed the action
+                ->on($linkedAccount)   // The model that was affected
+                ->withProperty('provider', $provider) // Add extra context
+                ->log('User linked a social account'); // The description of the action
+
             return redirect()->route('my-accounts.index')
-                             ->with('status', 'GitHub account linked successfully!');
+                             ->with('status', ucfirst($provider) . ' account linked successfully!');
 
         } catch (Throwable $e) {
             report($e);
             return redirect()->route('my-accounts.index')
-                             ->with('error', 'Failed to link GitHub account. Please try again.');
+                             ->with('error', 'Failed to link ' . ucfirst($provider) . ' account. Please try again.');
         }
     }
 }

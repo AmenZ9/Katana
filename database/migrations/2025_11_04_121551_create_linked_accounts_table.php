@@ -26,7 +26,11 @@ return new class extends Migration
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
 
-            // The critical unique constraint
+            // --- THIS IS THE ONLY CHANGE ---
+            // This line adds the `deleted_at` column needed for soft deletes.
+            $table->softDeletes();
+
+            // The critical unique constraint remains.
             $table->unique(['user_id', 'provider_name']);
         });
     }

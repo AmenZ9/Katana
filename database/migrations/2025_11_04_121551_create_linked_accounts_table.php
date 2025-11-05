@@ -1,22 +1,41 @@
-public function up(): void
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
 {
-    Schema::create('linked_accounts', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('user_id')->constrained()->onDelete('cascade');
-        $table->string('provider_name');
-        $table->string('provider_id'); // Keeping as string is safer for very large IDs
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('linked_accounts', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('provider_name');
+            $table->string('provider_id');
 
-        $table->string('name')->nullable();
-        $table->string('nickname')->nullable();
-        $table->string('email')->nullable();
-        $table->string('avatar')->nullable();
-        $table->text('token');
-        $table->text('refresh_token')->nullable();
-        $table->timestamp('expires_at')->nullable();
-        $table->timestamps();
+            $table->string('name')->nullable();
+            $table->string('nickname')->nullable();
+            $table->string('email')->nullable();
+            $table->string('avatar')->nullable();
+            $table->text('token');
+            $table->text('refresh_token')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
 
-        // --- THIS IS THE CRITICAL FIX ---
-        // Add a unique constraint to prevent duplicate accounts
-        $table->unique(['user_id', 'provider_name']);
-    });
-}
+            // The critical unique constraint
+            $table->unique(['user_id', 'provider_name']);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('linked_accounts');
+    }
+};
